@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boxing Rosco — English with Annie</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --red:#C0392B; --gold:#F39C12; --dark:#0D0D0D; --mid:#1A1A1A; --gray:#888; --white:#F5F5F0; --green:#27AE60; }
+  body { background:var(--dark); color:var(--white); font-family:'Inter',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px; }
+  header { text-align:center; margin-bottom:18px; }
+  header h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,6vw,3.5rem); letter-spacing:3px; color:var(--gold); text-shadow:2px 2px 0 var(--red); }
+  header p { color:var(--gray); font-size:0.85rem; margin-top:4px; }
+  .scorebar { display:flex; gap:18px; margin-bottom:14px; font-size:0.82rem; color:var(--gray); }
+  .scorebar span { font-weight:700; color:var(--white); }
+  .rosco-wrap { position:relative; width:min(480px,88vw); height:min(480px,88vw); margin-bottom:20px; }
+  .rosco-ring { width:100%; height:100%; border-radius:50%; border:2px solid #2a2a2a; position:relative; }
+  .letter-btn {
+    position:absolute; width:46px; height:46px; border-radius:50%;
+    border:2px solid #444; background:var(--mid); color:var(--white);
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transform:translate(-50%,-50%); transition:all 0.18s; user-select:none; z-index:2;
+  }
+  .letter-btn:hover { border-color:var(--gold); transform:translate(-50%,-50%) scale(1.12); }
+  .letter-btn.active { border-color:var(--gold); background:#2C2000; box-shadow:0 0 12px rgba(243,156,18,0.5); }
+  .letter-btn.correct { background:var(--green); border-color:var(--green); color:#fff; }
+  .letter-btn.wrong { background:var(--red); border-color:var(--red); color:#fff; }
+  .letter-btn.skipped { background:#333; border-color:#555; color:#777; }
+  .rosco-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
+  .rosco-center .big { font-family:'Bebas Neue',sans-serif; font-size:2.8rem; color:var(--gold); }
+  .rosco-center .sub { font-size:0.7rem; color:var(--gray); letter-spacing:1px; text-transform:uppercase; }
+  .question-box { width:min(520px,95vw); background:var(--mid); border:1px solid #2a2a2a; border-radius:12px; padding:18px 22px; margin-bottom:14px; min-height:90px; }
+  .question-box .label { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--gold); font-weight:700; margin-bottom:6px; }
+  .type-badge { display:inline-block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; padding:2px 8px; border-radius:20px; margin-bottom:8px; }
+  .type-badge.starts { background:rgba(243,156,18,0.15); color:var(--gold); }
+  .type-badge.contains { background:rgba(36,113,163,0.15); color:#5DADE2; }
+  .question-box .definition { font-size:0.97rem; line-height:1.6; color:#CCC; }
+  .question-box.empty { display:flex; align-items:center; justify-content:center; color:var(--gray); font-size:0.9rem; }
+  .answer-row { display:flex; gap:10px; width:min(520px,95vw); margin-bottom:10px; }
+  .answer-row input { flex:1; background:#111; border:2px solid #333; border-radius:8px; color:var(--white); font-size:1rem; padding:10px 14px; font-family:'Inter',sans-serif; outline:none; transition:border-color 0.2s; }
+  .answer-row input:focus { border-color:var(--gold); }
+  .answer-row input.shake { animation:shake 0.35s ease; border-color:var(--red); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  .btn { padding:10px 16px; border:none; border-radius:8px; font-family:'Inter',sans-serif; font-size:0.88rem; font-weight:700; cursor:pointer; transition:all 0.15s; text-transform:uppercase; letter-spacing:1px; }
+  .btn-check { background:var(--gold); color:var(--dark); }
+  .btn-check:hover { background:#e08e0b; }
+  .btn-skip { background:#2a2a2a; color:var(--gray); }
+  .btn-skip:hover { background:#333; color:var(--white); }
+  .feedback { width:min(520px,95vw); min-height:34px; text-align:center; font-size:0.92rem; font-weight:600; margin-bottom:8px; padding:6px; border-radius:6px; }
+  .feedback.correct { background:rgba(39,174,96,0.15); color:var(--green); }
+  .feedback.wrong { background:rgba(192,57,43,0.15); color:#E74C3C; }
+  .feedback.reveal { background:rgba(36,113,163,0.15); color:#5DADE2; }
+  .end-screen { display:none; flex-direction:column; align-items:center; text-align:center; gap:12px; padding:20px; }
+  .end-screen h2 { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; color:var(--gold); }
+  .end-screen p { color:var(--gray); font-size:1rem; }
+  .end-screen .score-big { font-family:'Bebas Neue',sans-serif; font-size:4rem; color:var(--white); }
+  .btn-restart { background:var(--red); color:#fff; margin-top:8px; padding:12px 28px; font-size:1rem; }
+  .btn-restart:hover { background:#a93226; }
+  .legend { display:flex; gap:14px; margin-top:6px; font-size:0.72rem; color:var(--gray); flex-wrap:wrap; justify-content:center; }
+  .legend-item { display:flex; align-items:center; gap:4px; }
+  .dot { width:11px; height:11px; border-radius:50%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🥊 Boxing Rosco</h1>
+  <p>English with Annie — Muhammad Ali Class</p>
+</header>
+<div class="scorebar">
+  ✅ Correct: <span id="score-correct">0</span> &nbsp;
+  ❌ Wrong: <span id="score-wrong">0</span> &nbsp;
+  ⏭️ Skipped: <span id="score-skip">0</span>
+</div>
+<div class="rosco-wrap" id="rosco-wrap">
+  <div class="rosco-ring" id="rosco-ring"></div>
+  <div class="rosco-center">
+    <div class="big" id="center-num">—</div>
+    <div class="sub">remaining</div>
+  </div>
+</div>
+<div class="question-box empty" id="question-box">
+  <span>Click a letter to start 👆</span>
+</div>
+<div class="answer-row" id="answer-row" style="display:none">
+  <input type="text" id="answer-input" placeholder="Your answer..." autocomplete="off" autocorrect="off" spellcheck="false"/>
+  <button class="btn btn-check" id="btn-check">Check</button>
+  <button class="btn btn-skip" id="btn-skip">Skip</button>
+</div>
+<div class="feedback" id="feedback"></div>
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#27AE60"></div> Correct</div>
+  <div class="legend-item"><div class="dot" style="background:#C0392B"></div> Wrong</div>
+  <div class="legend-item"><div class="dot" style="background:#444"></div> Skipped</div>
+  <div class="legend-item"><div class="dot" style="background:#2C2000;border:1px solid #F39C12"></div> Active</div>
+</div>
+<div class="end-screen" id="end-screen">
+  <h2>🏆 Final Score</h2>
+  <div class="score-big" id="final-score">0/19</div>
+  <p id="final-msg"></p>
+  <button class="btn btn-restart" onclick="restartGame()">🔄 Play Again</button>
+</div>
+<script>
+const WORDS = [
+  { letter:"R", type:"starts",   word:"ROUND",        definition:"A period of fighting in a boxing match. A professional fight can have up to 12 of these." },
+  { letter:"K", type:"starts",   word:"KNOCKOUT",     definition:"When a boxer falls to the floor and cannot get up before the referee counts to 10. Also written as KO." },
+  { letter:"G", type:"starts",   word:"GLOVES",       definition:"The equipment worn on a boxer's hands — to hit and to protect themselves." },
+  { letter:"C", type:"starts",   word:"CHAMPION",     definition:"The boxer who holds the title — the best in their weight category. Ali was World Heavyweight _____ three times." },
+  { letter:"O", type:"starts",   word:"OPPONENT",     definition:"The person you are fighting against. Ali's most famous _____ was Sonny Liston." },
+  { letter:"T", type:"starts",   word:"TITLE",        definition:"The official recognition of being the best boxer in a category. Ali won the World Heavyweight _____ in 1964." },
+  { letter:"B", type:"starts",   word:"BELT",         definition:"The large decorated object given to the champion. 'He won the _____' means he became champion." },
+  { letter:"H", type:"starts",   word:"HEAVYWEIGHT",  definition:"The categories in boxing go from lightest to heaviest: flyweight, featherweight, lightweight, welterweight, middleweight, light heavyweight... and _____. Muhammad Ali competed in this last category." },
+  { letter:"P", type:"starts",   word:"PUNCH",        definition:"A hit delivered with the fist. The most basic attacking movement in boxing." },
+  { letter:"D", type:"starts",   word:"DEFEAT",       definition:"To lose a fight. Or: to beat your opponent. 'Ali suffered his first _____ in 1971 against Joe Frazier.'" },
+  { letter:"S", type:"starts",   word:"SWING",        definition:"A wide, circular hit — different from a straight punch. Very powerful if it connects." },
+  { letter:"A", type:"starts",   word:"ARENA",        definition:"The large stadium where a boxing match takes place, with thousands of people watching." },
+  { letter:"J", type:"starts",   word:"JUDGES",       definition:"The officials who sit outside the ring and give points to each boxer after every round. When there is no knockout, they decide who wins." },
+  { letter:"F", type:"starts",   word:"FEATHERWEIGHT",definition:"One of the boxing weight categories — for lighter boxers, around 57-59 kg. Think of a feather — very light." },
+  { letter:"N", type:"contains", word:"CORNER",       definition:"Contains N. The area at each side of the ring where a boxer's team waits between rounds. 'In the red _____...'" },
+  { letter:"E", type:"contains", word:"REFEREE",      definition:"Contains E. The official inside the ring who controls the fight, separates the boxers, and counts if a fighter falls." },
+  { letter:"I", type:"contains", word:"RING",         definition:"Contains I. The square area where the fight takes place. Boxers enter 'the _____'." },
+  { letter:"L", type:"contains", word:"CHALLENGER",   definition:"Contains L. The boxer who is fighting to take the title away from the current champion. Not the same as 'opponent'." },
+  { letter:"W", type:"contains", word:"CROWD",        definition:"Contains W. All the people watching the fight in the arena — shouting, cheering, reacting to every punch." },
+];
+
+let state = WORDS.map(w => ({ ...w, status:"pending" }));
+let current = null;
+let correctCount = 0, wrongCount = 0, skipCount = 0;
+
+function buildRosco() {
+  const ring = document.getElementById("rosco-ring");
+  ring.innerHTML = "";
+  const n = state.length;
+  const cx = 50, cy = 50, r = 44;
+  state.forEach((item, i) => {
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    const btn = document.createElement("button");
+    btn.className = "letter-btn";
+    btn.textContent = item.letter;
+    btn.id = "btn-" + i;
+    btn.style.left = x + "%";
+    btn.style.top = y + "%";
+    if (item.status !== "pending") btn.classList.add(item.status);
+    btn.addEventListener("click", () => selectQuestion(i));
+    ring.appendChild(btn);
+  });
+  updateCenter();
+}
+
+function updateCenter() {
+  const remaining = state.filter(s => s.status === "pending").length;
+  document.getElementById("center-num").textContent = remaining;
+  document.getElementById("score-correct").textContent = correctCount;
+  document.getElementById("score-wrong").textContent = wrongCount;
+  document.getElementById("score-skip").textContent = skipCount;
+}
+
+function selectQuestion(i) {
+  if (state[i].status !== "pending") return;
+  if (current !== null) {
+    const prev = document.getElementById("btn-" + current);
+    if (prev && state[current].status === "pending") prev.classList.remove("active");
+  }
+  current = i;
+  const item = state[i];
+  const qbox = document.getElementById("question-box");
+  qbox.className = "question-box";
+  const badgeText = item.type === "starts" ? "Starts with " + item.letter : "Contains the letter " + item.letter;
+  qbox.innerHTML = `
+    <div class="label">What's the word?</div>
+    <span class="type-badge ${item.type}">${badgeText}</span>
+    <div class="definition">${item.definition}</div>
+  `;
+  document.getElementById("btn-" + i).classList.add("active");
+  document.getElementById("answer-row").style.display = "flex";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("feedback").className = "feedback";
+  const inp = document.getElementById("answer-input");
+  inp.value = "";
+  inp.focus();
+}
+
+function normalize(str) {
+  return str.trim().toUpperCase().replace(/[^A-Z]/g, "");
+}
+
+function checkAnswer() {
+  if (current === null) return;
+  const inp = document.getElementById("answer-input");
+  const val = normalize(inp.value);
+  const correct_word = normalize(WORDS[current].word);
+  const fb = document.getElementById("feedback");
+  if (val === correct_word) {
+    state[current].status = "correct";
+    correctCount++;
+    fb.textContent = "✅ Correct! " + WORDS[current].word;
+    fb.className = "feedback correct";
+    document.getElementById("btn-" + current).classList.remove("active");
+    document.getElementById("btn-" + current).classList.add("correct");
+    finishQuestion();
+  } else {
+    state[current].status = "wrong";
+    wrongCount++;
+    fb.textContent = "❌ Wrong! The answer was: " + WORDS[current].word;
+    fb.className = "feedback wrong";
+    document.getElementById("btn-" + current).classList.remove("active");
+    document.getElementById("btn-" + current).classList.add("wrong");
+    inp.classList.add("shake");
+    setTimeout(() => inp.classList.remove("shake"), 400);
+    finishQuestion();
+  }
+}
+
+function skipQuestion() {
+  if (current === null) return;
+  state[current].status = "skipped";
+  skipCount++;
+  document.getElementById("feedback").textContent = "⏭️ Skipped — the answer was: " + WORDS[current].word;
+  document.getElementById("feedback").className = "feedback reveal";
+  document.getElementById("btn-" + current).classList.remove("active");
+  document.getElementById("btn-" + current).classList.add("skipped");
+  finishQuestion();
+}
+
+function finishQuestion() {
+  current = null;
+  document.getElementById("answer-row").style.display = "none";
+  document.getElementById("answer-input").value = "";
+  updateCenter();
+  if (state.filter(s => s.status === "pending").length === 0) setTimeout(showEndScreen, 700);
+}
+
+function showEndScreen() {
+  ["rosco-wrap","question-box","answer-row","feedback"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("end-screen").style.display = "flex";
+  document.getElementById("final-score").textContent = correctCount + "/" + WORDS.length;
+  const ratio = correctCount / WORDS.length;
+  const msgs = ["Perfect! You're a boxing legend! 🥊🏆","Excellent! Ali would be proud! 🥊","Good work! Keep training! 💪","Keep practising — every champion starts somewhere! 🥊"];
+  document.getElementById("final-msg").textContent = ratio === 1 ? msgs[0] : ratio >= 0.8 ? msgs[1] : ratio >= 0.5 ? msgs[2] : msgs[3];
+}
+
+function restartGame() {
+  state = WORDS.map(w => ({ ...w, status:"pending" }));
+  current = null; correctCount = 0; wrongCount = 0; skipCount = 0;
+  ["rosco-wrap","question-box","feedback"].forEach(id => document.getElementById(id).style.display = "block");
+  document.getElementById("question-box").className = "question-box empty";
+  document.getElementById("question-box").innerHTML = "<span>Click a letter to start 👆</span>";
+  document.getElementById("answer-row").style.display = "none";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("end-screen").style.display = "none";
+  buildRosco();
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Enter") checkAnswer(); });
+document.getElementById("btn-check").addEventListener("click", checkAnswer);
+document.getElementById("btn-skip").addEventListener("click", skipQuestion);
+buildRosco();
+</script>
+</body>
+</html>
